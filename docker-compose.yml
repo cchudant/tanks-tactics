@@ -1,0 +1,26 @@
+version: '3'
+services:
+  # client
+  client:
+    build:
+      context: .
+      dockerfile: ./client.dockerfile
+      args: 
+        REACT_APP_API_URL: ${API_URL}
+    restart: always
+    ports:
+      - '${FRONT_PORT}:8080'
+
+  # server
+  server:
+    build:
+      context: .
+      dockerfile: ./server.dockerfile
+    environment:
+      PORT: 3000
+      LISTEN_HOST: 0.0.0.0
+      NODE_ENV: production
+      MODE: PRODUCTION
+    restart: always
+    ports:
+      - '${API_PORT}:3000'

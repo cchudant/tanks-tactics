@@ -1,0 +1,20 @@
+{
+  "type": "postgres",
+  "host": "localhost",
+  "port": 5432,
+  "username": "postgres",
+  "password": "",
+  "database": "tanks-dev",
+  "migrationsTableName": "migration",
+  "entities": [
+    "dist/src/entities/*.js"
+  ],
+  "migrations": [
+    "dist/migrations/*.js"
+  ],
+  "cli": {
+    "migrationsDir": "migrations"
+  },
+  "logging": "all",
+  "synchronize": false
+}
