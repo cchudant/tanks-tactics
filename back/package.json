@@ -27,7 +27,8 @@
     "db:migration:generate": "yarn typeorm migration:generate",
     "db:migration:run": "yarn typeorm migration:run",
     "db:migration:show": "yarn typeorm migration:show",
-    "db:migration:revert": "yarn typeorm migration:revert"
+    "db:migration:revert": "yarn typeorm migration:revert",
+    "typeorm:prod": "ts-node --transpile-only ./node_modules/typeorm/cli.js -d ./dist/ormconfig.js"
   },
   "jest": {
     "moduleFileExtensions": [
@@ -56,7 +57,7 @@
     "@nestjs/swagger": "^6.0.1",
     "@nestjs/typeorm": "^9.0.0",
     "@nestjs/websockets": "^9.0.1",
-    "argon2": "^0.28.2",
+    "argon2": "^0.28.7",
     "bull": "^3.29.1",
     "class-transformer": "^0.5.0",
     "class-validator": "^0.13.1",

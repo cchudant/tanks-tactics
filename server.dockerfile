@@ -1,22 +1,23 @@
-FROM node:14
+FROM node:16.10 AS builder
 
 WORKDIR /app
 
-COPY ./back/package.json ./back/package.json
-COPY ./back/yarn.lock ./back/yarn.lock
-
-COPY ./back/src ./back/src
-COPY ./back/tsconfig.json ./back/tsconfig.json
-COPY ./back/tsconfig.build.json ./back/tsconfig.build.json
+COPY ./back ./back
 
 RUN yarn --cwd ./back install --frozen-lockfile
 RUN yarn --cwd ./back build
-RUN yarn --cwd ./back install --frozen-lockfile --production
 
-RUN rm -rf ./back/src
-RUN rm -rf ./back/tsconfig.json
-RUN rm -rf ./back/tsconfig.build.json
+FROM node:16.10 AS runtime
+
+COPY --from=builder /app/back/dist /app/back/dist
+COPY --from=builder /app/back/package.json /app/back/package.json
+COPY --from=builder /app/back/yarn.lock /app/back/yarn.lock
 
 WORKDIR /app/back
 
-CMD yarn start:prod
+RUN yarn install --frozen-lockfile --production
+
+CMD bash -c "\
+    yarn typeorm:prod schema:sync && \
+    yarn start:prod \
+"

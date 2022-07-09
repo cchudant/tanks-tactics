@@ -26,7 +26,7 @@ async function handleError(res: Response) {
   if (!res.ok) {
     let message = res.statusText
     try {
-      const json = (await res.json())
+      const json = await res.json()
       const msg = json.message
       if (typeof msg === 'string') message = msg
       if (Array.isArray(msg) && typeof msg[0] === 'string') message = msg[0]
@@ -52,7 +52,10 @@ export function useRequest<T>(
     await handleError(res)
 
     const json =
-      res.headers.get('content-length') == '0' ? {} : await res.json()
+      !res.headers.get('content-length') ||
+      res.headers.get('content-length') == '0'
+        ? {}
+        : await res.json()
     setData(json)
   }
 
@@ -92,7 +95,10 @@ export function usePost<T = any>(
       await handleError(res)
 
       const json =
-        res.headers.get('content-length') == '0' ? {} : await res.json()
+        !res.headers.get('content-length') ||
+        res.headers.get('content-length') == '0'
+          ? {}
+          : await res.json()
 
       setData(json)
       setReturned(true)

@@ -10,7 +10,7 @@ import { Namespace, Server } from 'socket.io'
 export class SocketIOAdapter extends AbstractWsAdapter {
   constructor(
     appOrHttpServer?: INestApplicationContext | any,
-    private readonly corsOrigins = [],
+    private readonly corsOrigin?: any,
   ) {
     super(appOrHttpServer)
   }
@@ -38,7 +38,7 @@ export class SocketIOAdapter extends AbstractWsAdapter {
     if (this.httpServer && port === 0) {
       const s = new Server(this.httpServer, {
         cors: {
-          origin: this.corsOrigins,
+          origin: this.corsOrigin,
           methods: ['GET', 'POST'],
           credentials: true,
         },

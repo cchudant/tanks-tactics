@@ -86,6 +86,10 @@ export class ConfigService {
     return this.getValue('COOKIE_SECRET')
   }
 
+  public getCORSOrigin(): string | boolean {
+    return this.getValue('CORS_ORIGIN') || '*'
+  }
+
   public getMorganFormat(): string {
     return !this.isProduction() ? 'dev' : 'short'
   }

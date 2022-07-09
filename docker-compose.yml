@@ -1,9 +1,10 @@
-version: '3'
+version: '3.4'
 services:
   # client
   client:
     build:
       context: .
+      target: runtime
       dockerfile: ./client.dockerfile
       args: 
         REACT_APP_API_URL: ${API_URL}
@@ -11,16 +12,35 @@ services:
     ports:
       - '${FRONT_PORT}:8080'
 
+  # db
+  db:
+    image: postgres:latest
+    environment:
+      POSTGRES_USER: postgres # The PostgreSQL user (useful to connect to the database)
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD} # The PostgreSQL password (useful to connect to the database)
+      POSTGRES_DB: tanks-tactics # The PostgreSQL default database (automatically created at first launch)
+
   # server
   server:
     build:
       context: .
+      target: runtime
       dockerfile: ./server.dockerfile
     environment:
       PORT: 3000
       LISTEN_HOST: 0.0.0.0
       NODE_ENV: production
       MODE: PRODUCTION
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DATABASE: tanks-tactics
+      COOKIE_SECRET: ${COOKIE_SECRET}
+      SUPERUSER_USERNAME: root
+      SUPERUSER_PASSWORD: ${SUPERUSER_PASSWORD}
+      CORS_ORIGIN: ${FRONT_ORIGIN}
+
     restart: always
     ports:
       - '${API_PORT}:3000'

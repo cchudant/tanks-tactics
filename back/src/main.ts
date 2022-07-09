@@ -14,7 +14,7 @@ async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
     cors: {
       credentials: true,
-      origin: true, // FIXME: origin whitelist
+      origin: configService.getCORSOrigin(), // FIXME: origin whitelist
     },
   })
   app.use(cookieParser())
@@ -43,7 +43,7 @@ async function bootstrap() {
   //   SwaggerModule.setup('api', app, document)
   // }
 
-  app.useWebSocketAdapter(new SocketIOAdapter(app, []))
+  app.useWebSocketAdapter(new SocketIOAdapter(app, configService.getCORSOrigin()))
 
   await app.listen(configService.getPort(), configService.getListenHost())
 }
