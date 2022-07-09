@@ -4,6 +4,11 @@ export interface TankEntity {
   color: number
   name: string
   hearts: number
+
+  // admin only
+  ap?: number
+  range?: number
+  vote?: string
 }
 export interface HeartEntity {
   x: number
@@ -16,14 +21,19 @@ export interface GameState {
   tanks: TankEntity[]
   hearts: HeartEntity[]
   end: boolean
-  started: boolean
+  paused: boolean
+
+  currentDay: number
+  endDay: number
+
+  winner?: string
+
+  isEndgame: boolean
+  lastVoted?: string
 }
 
-export interface MyState {
-  name: string
+export interface MyState extends TankEntity {
   range: number
   ap: number
   vote?: string
 }
-
-export type Mode = 'move' | 'giveAp' | 'giveHeart' | 'attack' | null

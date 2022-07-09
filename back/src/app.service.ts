@@ -2,9 +2,9 @@ import { BadRequestException, Injectable, Logger } from '@nestjs/common'
 import { EventEmitter2, OnEvent } from '@nestjs/event-emitter'
 import { Cron } from '@nestjs/schedule'
 import { InjectRepository } from '@nestjs/typeorm'
-import { classToPlain } from 'class-transformer'
-import { EntityManager, Repository } from 'typeorm'
-import { UserSession } from './auth/user.session'
+import { instanceToPlain } from 'class-transformer'
+import { EntityManager, Not, Repository } from 'typeorm'
+import { Role, UserSession } from './auth/user.session'
 import { GameEntity } from './entities/game.entity'
 import { UserEntity } from './entities/user.entity'
 import { GameGateway } from './game.gateway'
@@ -21,6 +21,8 @@ export class AppService {
   constructor(
     @InjectRepository(GameEntity)
     private gameRepository: Repository<GameEntity>,
+    @InjectRepository(UserEntity)
+    private userRepository: Repository<UserEntity>,
     private eventEmitter: EventEmitter2,
     private entityManager: EntityManager,
   ) {}
@@ -35,7 +37,8 @@ export class AppService {
     return res[0]
   }
 
-  async saveGame(game: GameEntity): Promise<void> {
+  private async saveGame(game: GameEntity): Promise<void> {
+    console.log('Saving', game)
     await this.gameRepository.save(game)
     this.eventEmitter.emit('gamestate.update', new GameStateEvent(game.state))
   }
@@ -44,6 +47,7 @@ export class AppService {
     await this.entityManager.transaction(async () => {
       const game = await this.getGame()
       const state = game.state
+      if (!state.canPlay()) return new BadRequestException('Game is paused')
 
       const src = state.getTankByName(source)
       const trg = state.getTankByName(target)
@@ -52,7 +56,8 @@ export class AppService {
 
       if (!src || !trg) throw new BadRequestException('Tank does not exist')
 
-      if (src === trg) throw new BadRequestException('Cannot apply action to yourself')
+      if (src === trg)
+        throw new BadRequestException('Cannot apply action to yourself')
 
       if (!this.isInRange(src, trg, src.range))
         throw new BadRequestException('Too far away')
@@ -71,6 +76,7 @@ export class AppService {
     await this.entityManager.transaction(async () => {
       const game = await this.getGame()
       const state = game.state
+      if (!state.canPlay()) return new BadRequestException('Game is paused')
 
       const src = state.getTankByName(source)
       const trg = state.getTankByName(target)
@@ -79,7 +85,8 @@ export class AppService {
 
       if (!src || !trg) throw new BadRequestException('Tank does not exist')
 
-      if (src === trg) throw new BadRequestException('Cannot apply action to yourself')
+      if (src === trg)
+        throw new BadRequestException('Cannot apply action to yourself')
 
       if (!this.isInRange(src, trg, src.range))
         throw new BadRequestException('Too far away')
@@ -89,6 +96,13 @@ export class AppService {
       // mutate state
       src.hearts -= 1
       trg.hearts += 1
+      if (trg.hearts === 1) {
+        // target got revived
+        trg.ap = 0
+        trg.vote = undefined
+      }
+
+      this.checkEndgame(state)
 
       await this.saveGame(game)
     })
@@ -98,6 +112,7 @@ export class AppService {
     await this.entityManager.transaction(async () => {
       const game = await this.getGame()
       const state = game.state
+      if (!state.canPlay()) return new BadRequestException('Game is paused')
 
       const src = state.getTankByName(source)
 
@@ -119,6 +134,7 @@ export class AppService {
     await this.entityManager.transaction(async () => {
       const game = await this.getGame()
       const state = game.state
+      if (!state.canPlay()) return new BadRequestException('Game is paused')
 
       const src = state.getTankByName(source)
 
@@ -145,7 +161,7 @@ export class AppService {
       if (occupied) {
         const heartIndex = state.hearts.indexOf(occupied!)
         state.hearts.splice(heartIndex, 1) // delete the heart
-        src.hearts += 1
+        src.hearts = Math.min(3, src.hearts + 1) // limit hearts to 3
       }
 
       await this.saveGame(game)
@@ -156,6 +172,7 @@ export class AppService {
     await this.entityManager.transaction(async () => {
       const game = await this.getGame()
       const state = game.state
+      if (!state.canPlay()) return new BadRequestException('Game is paused')
 
       const src = state.getTankByName(source)
       const trg = state.getTankByName(target)
@@ -164,7 +181,8 @@ export class AppService {
 
       if (!src || !trg) throw new BadRequestException('Tank does not exist')
 
-      if (src === trg) throw new BadRequestException('Cannot apply action to yourself')
+      if (src === trg)
+        throw new BadRequestException('Cannot apply action to yourself')
 
       if (!this.isInRange(src, trg, src.range))
         throw new BadRequestException('Too far away')
@@ -178,6 +196,13 @@ export class AppService {
       src.ap -= 1
       trg.hearts -= 1
 
+      if (trg.hearts <= 0) {
+        src.ap += trg.ap
+        trg.ap = 0
+      }
+
+      this.checkEndgame(state)
+
       await this.saveGame(game)
     })
   }
@@ -186,18 +211,24 @@ export class AppService {
     await this.entityManager.transaction(async () => {
       const game = await this.getGame()
       const state = game.state
+      if (!state.canPlay()) return new BadRequestException('Game is paused')
 
       const src = state.getTankByName(source)
 
-      // check: tank exists, enough ap
+      // check: tank exists, enough ap, hearts limit
 
+      if (state.isEndgame)
+        throw new BadRequestException('Cannot buy hearts in endgame')
       if (!src) throw new BadRequestException('Tank does not exist')
 
       if (src.ap < 3) throw new BadRequestException('Not enough AP')
+      if (src.hearts >= 3) throw new BadRequestException('Too many hearts')
 
       // mutate state
       src.hearts += 1
       src.ap -= 3
+
+      this.checkEndgame(state)
 
       await this.saveGame(game)
     })
@@ -207,6 +238,7 @@ export class AppService {
     await this.entityManager.transaction(async () => {
       const game = await this.getGame()
       const state = game.state
+      if (!state.canPlay()) return new BadRequestException('Game is paused')
 
       const src = state.getTankByName(source)
       const trg = state.getTankByName(target)
@@ -230,7 +262,7 @@ export class AppService {
   }
 
   // debug actions
-  async addAP(target: string, amount: number) {
+  async adminAddAP(target: string, amount: number) {
     await this.entityManager.transaction(async () => {
       const game = await this.getGame()
       const state = game.state
@@ -243,13 +275,139 @@ export class AppService {
   }
 
   // debug actions
-  async addHearts(target: string, amount: number) {
+  async adminAddHearts(target: string, amount: number) {
     await this.entityManager.transaction(async () => {
       const game = await this.getGame()
       const state = game.state
 
       const trg = state.getTankByName(target)
       trg!.hearts += amount
+
+      this.checkEndgame(state)
+
+      await this.saveGame(game)
+    })
+  }
+
+  // debug actions
+  async adminAddRange(target: string, amount: number) {
+    await this.entityManager.transaction(async () => {
+      const game = await this.getGame()
+      const state = game.state
+
+      const trg = state.getTankByName(target)
+      trg!.range += amount
+
+      await this.saveGame(game)
+    })
+  }
+
+  // debug actions
+  async adminSetPaused(paused: boolean) {
+    await this.entityManager.transaction(async () => {
+      const game = await this.getGame()
+      const state = game.state
+
+      state.paused = paused
+
+      await this.saveGame(game)
+    })
+  }
+
+  // debug actions
+  async adminMove(source: string, target: { x: number; y: number }) {
+    await this.entityManager.transaction(async () => {
+      const game = await this.getGame()
+      const state = game.state
+
+      const src = state.getTankByName(source)
+
+      // check: tank exists, range, enough AP, target square is occupied by tank
+      // special case: move into square occupied by a heart
+
+      if (!src) throw new BadRequestException('Tank does not exist')
+
+      const occupied = state.getEntity(target.x, target.y)
+      if (occupied && !(occupied instanceof HeartEntity))
+        throw new BadRequestException('Square is occupied')
+
+      // mutate state
+      src.x = target.x
+      src.y = target.y
+
+      if (occupied) {
+        const heartIndex = state.hearts.indexOf(occupied!)
+        state.hearts.splice(heartIndex, 1) // delete the heart
+        src.hearts = Math.min(3, src.hearts + 1) // limit hearts to 3
+      }
+
+      this.checkEndgame(state)
+
+      await this.saveGame(game)
+    })
+  }
+
+  // debug actions
+  async adminChangeVote(target: string, vote?: string) {
+    await this.entityManager.transaction(async () => {
+      const game = await this.getGame()
+      const state = game.state
+
+      const trg = state.getTankByName(target)
+      trg!.vote = vote
+
+      await this.saveGame(game)
+    })
+  }
+
+  // debug actions
+  async adminRemoveHearts() {
+    await this.entityManager.transaction(async () => {
+      const game = await this.getGame()
+      const state = game.state
+
+      state.hearts = []
+
+      await this.saveGame(game)
+    })
+  }
+
+  // debug actions
+  async adminAddMapHeart(target: { x: number; y: number }) {
+    await this.entityManager.transaction(async () => {
+      const game = await this.getGame()
+      const state = game.state
+
+      state.hearts.push(new HeartEntity(target.x, target.y))
+
+      await this.saveGame(game)
+    })
+  }
+
+  // debug actions
+  async adminResetEverything(opt: Partial<GameState>) {
+    await this.entityManager.transaction(async () => {
+      const game = await this.getGame()
+      const state = new GameState()
+
+      Object.assign(state, opt)
+
+      game.state = state
+
+      await this.saveGame(game)
+      await this.userRepository.delete({ role: Not(Role.ADMIN) })
+    })
+  }
+
+  // debug actions
+  async adminSetCurrentDay(day: number) {
+    await this.entityManager.transaction(async () => {
+      const game = await this.getGame()
+      const state = game.state
+
+      state.currentDay = day
+
+      game.state = state
 
       await this.saveGame(game)
     })
@@ -267,16 +425,41 @@ export class AppService {
     return true
   }
 
-  personalizedGameState(session: UserSession, state: GameState): object {
+  personalizedGameState(
+    session: UserSession | undefined,
+    state: GameState,
+  ): object {
     const myState = session && state.getTankById(session.userId)
-    console.log(myState)
+    if (session?.role === 'admin')
+      return {
+        gameState: instanceToPlain(state, { groups: ['admin'] }),
+      }
+
     return {
-      gameState: classToPlain(state),
-      myState: myState && classToPlain(myState, { groups: ['me'] }),
+      gameState: instanceToPlain(state, { groups: [] }),
+      myState: myState && instanceToPlain(myState, { groups: ['me'] }),
     }
   }
 
-  randomMapPosition(state: GameState): { x: number; y: number } {
+  private checkEndgame(state: GameState) {
+    if (state.isEndgame) {
+      const tanks = [...state.tanks]
+      tanks.sort((a, b) => b.hearts - a.hearts) // highest first
+
+      if (tanks.length < 1) return
+      if (tanks.length === 1 || tanks[0].hearts !== tanks[1].hearts) {
+        // end condition
+        state.end = true
+        state.winner = tanks[0].name
+
+        state.tanks.forEach(t => {
+          if (t !== tanks[0]) t.hearts = 0
+        })
+      }
+    }
+  }
+
+  private randomMapPosition(state: GameState): { x: number; y: number } {
     let x
     let y
     do {
@@ -289,10 +472,7 @@ export class AppService {
     return { x, y }
   }
 
-  @Cron('0 0 * * *')
-  async resetJob() {
-    this.logger.debug('Reset job!')
-
+  async performResetJob(endgame?: boolean) {
     function randIn<T>(arr: T[]): T {
       const rand = Math.floor(Math.random() * arr.length)
       return arr[rand]
@@ -301,6 +481,11 @@ export class AppService {
     await this.entityManager.transaction(async () => {
       const game = await this.getGame()
       const state = game.state
+
+      if (typeof endgame === 'boolean' && endgame !== state.isEndgame) return
+      this.logger.log('Reset job: endgame = ' + state.isEndgame)
+
+      state.currentDay += 1 // new day!
 
       // compute voting result
 
@@ -318,6 +503,8 @@ export class AppService {
       const highestTanks = tanks.filter(([_tank, votes]) => votes === highest)
       const chosen = highest >= 1 ? randIn(highestTanks)[0] : null
 
+      state.lastVoted = chosen?.name
+
       // increment everyone's ap if alive, except for the voted one
 
       alive.forEach(tank => {
@@ -333,11 +520,26 @@ export class AppService {
 
       // add a heart on the map
 
-      const position = this.randomMapPosition(state)
-      state.hearts.push(new HeartEntity(position.x, position.y))
+      if (!state.isEndgame) {
+        const position = this.randomMapPosition(state)
+        state.hearts.push(new HeartEntity(position.x, position.y))
+      }
+
+      // endgame stuff
+      this.checkEndgame(state)
 
       await this.saveGame(game)
     })
+  }
+
+  @Cron('*/30 * * * *')
+  async resetJobEndgame() {
+    await this.performResetJob(true)
+  }
+
+  @Cron('0 18 * * *')
+  async resetJob() {
+    await this.performResetJob(false)
   }
 
   @OnEvent('user.create')

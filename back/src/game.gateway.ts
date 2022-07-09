@@ -7,7 +7,7 @@ import {
   WebSocketGateway,
   WebSocketServer,
 } from '@nestjs/websockets'
-import { classToPlain } from 'class-transformer'
+import { instanceToPlain as classToPlain } from 'class-transformer'
 import { Server, Socket } from 'socket.io'
 import { AppService, GameStateEvent } from './app.service'
 import { UserSession } from './auth/user.session'
@@ -56,13 +56,10 @@ export class GameGateway {
     sockets.forEach(socket => {
       const session: UserSession = (socket.handshake as any).user
 
-      console.log(socket.handshake)
-
       const output = this.appService.personalizedGameState(
         session,
         event.gameState,
       )
-      console.log('send ', output)
       socket.send(output)
     })
   }

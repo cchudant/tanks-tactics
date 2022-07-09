@@ -1,11 +1,12 @@
 import styled from 'styled-components'
 import { colors } from './colors'
-import { GameState, Mode, MyState } from './types'
+import { GameState, MyState } from './types'
 
 import assetInfo from './assets/info.svg'
 import { useState } from 'react'
 import { ConfirmModale } from './Modale'
 import { usePost } from './useRequest'
+import { BoardActionHelper } from './App'
 
 const LoggedActionsCntr = styled.div`
   margin: 1.5rem;
@@ -34,7 +35,7 @@ const YouAre = styled.div<{ col: number }>`
   }
 
   .color {
-    color: ${opt => colors[opt.col]};
+    color: ${opt => colors[opt.col % colors.length]};
     font-weight: bold;
   }
   padding: 1rem;
@@ -43,7 +44,13 @@ const YouAre = styled.div<{ col: number }>`
     text-align: center;
     font-size: 1.3rem;
     color: #ee6767;
+
+    & .statetip {
+      font-size: 1rem;
+    }
   }
+
+  max-width: 15rem;
 `
 
 const Buttons = styled.div`
@@ -126,7 +133,7 @@ const JuryVoteItem = styled.div<{ col: number }>`
   padding-left: 1.2rem;
   &:before {
     content: '';
-    background-color: ${opt => colors[opt.col]};
+    background-color: ${opt => colors[opt.col % colors.length]};
     border-radius: 100%;
     width: 0.9rem;
     height: 0.9rem;
@@ -145,16 +152,18 @@ const JuryVoteItem = styled.div<{ col: number }>`
 export function LoggedActions({
   myState,
   gameState,
-  mode,
-  setMode,
+  boardActions,
 }: {
   myState: MyState
   gameState: GameState
-  mode: Mode
-  setMode: (mode: Mode) => void
+  boardActions: BoardActionHelper
 }) {
   const myTank = gameState.tanks.find(tank => tank.name === myState.name)!
 
+  const { call: moveCall } = usePost('/game/move')
+  const { call: giveApCall } = usePost('/game/giveApToPlayer')
+  const { call: giveHeartCall } = usePost('/game/giveHeartToPlayer')
+  const { call: attackCall } = usePost('/game/attack')
   const { call: upgradeRange } = usePost('/game/upgradeRange')
   const { call: buyHeart } = usePost('/game/buyHeart')
   const { call: juryVote } = usePost('/game/juryVote')
@@ -168,10 +177,6 @@ export function LoggedActions({
   const myVote = myTank.hearts <= 0 ? myState.vote : undefined
 
   const [voteState, setVoteState] = useState<string | null>(null)
-
-  const toggleMode = (m: Mode) => {
-    setMode(mode === m ? null : m)
-  }
 
   return (
     <LoggedActionsCntr>
@@ -193,22 +198,40 @@ export function LoggedActions({
             </div>
           </div>
         ) : (
-          <div className="dead">Vous êtes mort</div>
+          <div className="dead">
+            Vous êtes mort
+            <div className="statetip">
+              Cependant, les autres joueurs peuvent vous réssuciter en vous envoyant un cœur.
+            </div>
+          </div>
         )}
       </YouAre>
       {myTank.hearts > 0 ? (
         <Buttons>
           <Button
             title={tooltips.giveAp}
-            disabled={myState.ap < 1}
-            onClick={() => toggleMode('giveAp')}
-            pressed={mode === 'giveAp'}
+            disabled={gameState.paused || myState.ap < 1}
+            onClick={() =>
+              boardActions.toggleAction({
+                actionName: 'giveAp',
+                color: ['#fff1b3', '#adb35b'],
+                onClick: (_x, _y, target) => {
+                  if (!target || target === myTank) return false
+
+                  giveApCall({ target: target.name })
+
+                  return true
+                },
+                range: 1,
+              })
+            }
+            pressed={boardActions.current?.actionName === 'giveAp'}
           >
             Donner un AP <img src={assetInfo} />
           </Button>
           <Button
             title={tooltips.upgradeRange}
-            disabled={myState.ap < 3}
+            disabled={gameState.paused || myState.ap < 3}
             onClick={() =>
               setConfirm({
                 question: 'Améliorer la portée',
@@ -221,31 +244,70 @@ export function LoggedActions({
           </Button>
           <Button
             title={tooltips.attack}
-            disabled={myState.ap < 1}
-            onClick={() => toggleMode('attack')}
-            pressed={mode === 'attack'}
+            disabled={gameState.paused || myState.ap < 1}
+            onClick={() =>
+              boardActions.toggleAction({
+                actionName: 'attack',
+                color: ['#ffb3b3', '#b35b5b'],
+                onClick: (_x, _y, target) => {
+                  if (!target || target === myTank) return false
+
+                  attackCall({ target: target.name })
+
+                  return true
+                },
+                range: myState.range,
+              })
+            }
+            pressed={boardActions.current?.actionName === 'attack'}
           >
             Attaquer <img src={assetInfo} />
           </Button>
           <Button
             title={tooltips.giveHeart}
-            disabled={myState.ap < 1}
-            onClick={() => toggleMode('giveHeart')}
-            pressed={mode === 'giveHeart'}
+            disabled={gameState.paused || myState.ap < 1}
+            onClick={() =>
+              boardActions.toggleAction({
+                actionName: 'giveHeart',
+                color: ['#d1ffd0', '#5bb36a'],
+                onClick: (_x, _y, target) => {
+                  if (!target || target === myTank) return false
+
+                  giveHeartCall({ target: target.name })
+
+                  return true
+                },
+                range: 1,
+              })
+            }
+            pressed={boardActions.current?.actionName === 'giveHeart'}
           >
             Donner un cœur <img src={assetInfo} />
           </Button>
           <Button
             title={tooltips.move}
-            disabled={myState.ap < 1}
-            onClick={() => toggleMode('move')}
-            pressed={mode === 'move'}
+            disabled={gameState.paused || myState.ap < 1}
+            onClick={() =>
+              boardActions.toggleAction({
+                actionName: 'move',
+                color: ['#d0fffb', '#5bb39d'],
+                onClick: (x, y, target) => {
+                  if (target) return false
+
+                  moveCall({ x, y })
+
+                  return true
+                },
+                range: 1,
+              })
+            }
+            pressed={boardActions.current?.actionName === 'move'}
           >
             Se déplacer <img src={assetInfo} />
           </Button>
           <Button
             title={tooltips.buyHeart}
-            disabled={myState.ap < 3}
+            disabled={gameState.paused || myState.ap < 3 || myState.hearts >= 3}
             onClick={() =>
               setConfirm({
                 question: 'Acheter un cœur',
@@ -262,7 +324,7 @@ export function LoggedActions({
           <div className="title" title={juryTooltip}>
             Vote du jury <img src={assetInfo} />{' '}
             <button
-              disabled={!myVote}
+              disabled={gameState.paused || !voteState || !!myVote}
               onClick={() => juryVote({ target: voteState })}
             >
               Envoyer le vote
@@ -277,9 +339,9 @@ export function LoggedActions({
                   <input
                     type="radio"
                     name="juryVote"
-                    disabled={!myVote}
+                    disabled={!!myVote}
                     checked={(myVote || voteState) === tank.name}
-                    onChange={ev => setVoteState(ev.target.value)}
+                    onChange={() => setVoteState(tank.name)}
                   />
                 </JuryVoteItem>
               ))}

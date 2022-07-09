@@ -1,4 +1,4 @@
-import { Expose } from 'class-transformer'
+import { Expose, plainToInstance, Type } from 'class-transformer'
 
 export abstract class Entity {
   x!: number
@@ -18,11 +18,11 @@ export class TankEntity extends Entity {
 
   hearts: number = 3
 
-  @Expose({ groups: ['me', 'db'] })
+  @Expose({ groups: ['me', 'db', 'admin'] })
   ap: number = 1
-  @Expose({ groups: ['me', 'db'] })
+  @Expose({ groups: ['me', 'db', 'admin'] })
   range: number = 2
-  @Expose({ groups: ['me', 'db'] })
+  @Expose({ groups: ['me', 'db', 'admin'] })
   vote?: string // name of the player
 }
 export class HeartEntity extends Entity {
@@ -34,10 +34,27 @@ export class HeartEntity extends Entity {
 export class GameState {
   width: number = 20
   height: number = 12
+  @Type(() => TankEntity)
   tanks: TankEntity[] = []
+  @Type(() => HeartEntity)
   hearts: HeartEntity[] = []
   end: boolean = false
-  started: boolean = true
+  paused: boolean = true
+
+  currentDay: number = 1
+  endDay: number = 14
+
+  winner?: string
+  lastVoted?: string
+
+  @Expose()
+  get isEndgame() {
+    return this.currentDay > this.endDay
+  }
+
+  canPlay(): boolean {
+    return !this.end && !this.paused
+  }
 
   getEntity(x: number, y: number): Entity | undefined {
     const heart = this.hearts.find(h => h.x === x && h.y === y)

@@ -1,4 +1,4 @@
-import { classToPlain, plainToClass } from 'class-transformer'
+import { instanceToPlain, plainToInstance } from 'class-transformer'
 import { GameState } from 'src/game/gamestate'
 import {
   AfterLoad,
@@ -13,13 +13,11 @@ import { BaseEntity } from './base.entity'
 
 @Entity()
 export class GameEntity extends BaseEntity {
-  @Column('json', { name: 'state' })
-  get rawState(): object {
-    return classToPlain(this.state, { groups: ['db'] })
-  }
-  set rawState(obj: object) {
-    this.state = plainToClass(GameState, obj)
-  }
-
+  @Column('json', {
+    transformer: {
+      to: value => instanceToPlain(value, { groups: ['db'] }),
+      from: value => plainToInstance(GameState, value, { groups: ['db'] }),
+    },
+  })
   state: GameState = new GameState()
 }

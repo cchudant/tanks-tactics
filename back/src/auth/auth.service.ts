@@ -23,7 +23,9 @@ export default class AuthService {
 
   async validateUser(username: string, password: string): Promise<UserEntity> {
     let user = await this.userRepository.findOne({
-      name: username,
+      where: {
+        name: username,
+      },
     })
 
     if (
@@ -50,7 +52,7 @@ export default class AuthService {
   }
 
   genPassword(): string {
-    return crypto.randomBytes(32).toString('hex')
+    return crypto.randomBytes(8).toString('hex')
   }
 
   async setPassword(userId: string, password: string): Promise<void> {
@@ -67,7 +69,7 @@ export default class AuthService {
 
   async resetPassword(user: string): Promise<string> {
     const pw = this.genPassword()
-    await this.userRepository.update(
+    const ret = await this.userRepository.update(
       {
         name: user,
       },
@@ -76,6 +78,9 @@ export default class AuthService {
         password: await argon2.hash(pw),
       },
     )
+
+    if (ret.affected === 0)
+      throw new NotFoundException('User not found')
 
     return pw
   }

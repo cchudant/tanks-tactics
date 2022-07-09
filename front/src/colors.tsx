@@ -1,1 +1,16 @@
-export const colors = ['#63df7e', '#f3bc94']
+export const colors = [
+    '#63df7e',
+    '#f3bc94',
+    '#53B3CB',
+    '#ECB0E1',
+    '#C16B55',
+    '#C252CE',
+    '#8AA2A9',
+    '#E2E26C',
+    '#FFA2A2',
+    '#8367C7',
+    '#9C6F59',
+    '#1D1E2F',
+    '#4B644A',
+    '#588B8B',
+]

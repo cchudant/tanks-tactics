@@ -1,3 +1,4 @@
+import { useState, FormEvent } from 'react'
 import styled from 'styled-components'
 
 const ModaleCtnr = styled.div<{
@@ -63,7 +64,7 @@ export function Modale(opt: {
   height: string
   children: JSX.Element[] | JSX.Element
   closeBtn: boolean
-  onClose: () => void
+  onClose?: () => void
 }) {
   return (
     <ModaleCtnr width={opt.width} height={opt.height} closeBtn={opt.closeBtn}>
@@ -76,8 +77,8 @@ export function Modale(opt: {
   )
 }
 
-const ConfirmModaleContent = styled.div`
-  .question {
+const CommonModaleCtnr = styled.div`
+  .modale-title {
     padding-top: 1rem;
     font-size: 1.5rem;
     text-align: center;
@@ -111,24 +112,108 @@ const ConfirmModaleContent = styled.div`
       }
     }
   }
+
+  .fields {
+    input {
+      margin: 0;
+      width: 100%;
+    }
+  }
 `
 
 export function ConfirmModale(opt: {
   question: string
-  description?: string
-  onConfirm: () => void
+  description?: string | JSX.Element
+  onConfirm: () => Promise<void> | void
   onClose: () => void
+}) {
+  const [error, setError] = useState<string | undefined>()
+  const confirm = () =>
+    Promise.resolve(opt.onConfirm()).catch(err => {
+      setError(err.message)
+      console.error(err)
+    })
+
+  return (
+    <Modale width="22rem" height="auto" onClose={opt.onClose} closeBtn={true}>
+      <CommonModaleCtnr>
+        <div className="title">{opt.question}</div>
+        <div className="description">{opt.description}</div>
+        <div className="error">{error}</div>
+        <div className="buttons">
+          <button onClick={opt.onClose}>Annuler</button>
+          <button onClick={confirm}>Confirmer</button>
+        </div>
+      </CommonModaleCtnr>
+    </Modale>
+  )
+}
+
+export function InfoModale(opt: {
+  title: string
+  description?: string | JSX.Element
+  onClose?: () => void
 }) {
   return (
     <Modale width="22rem" height="auto" onClose={opt.onClose} closeBtn={true}>
-      <ConfirmModaleContent>
-        <div className="question">{opt.question}</div>
+      <CommonModaleCtnr>
+        <div className="modale-title">{opt.title}</div>
         <div className="description">{opt.description}</div>
         <div className="buttons">
-          <button onClick={opt.onConfirm}>Confirmer</button>
-          <button onClick={opt.onClose}>Annuler</button>
+          <button onClick={opt.onClose}>Fermer</button>
         </div>
-      </ConfirmModaleContent>
+      </CommonModaleCtnr>
+    </Modale>
+  )
+}
+
+export interface FormModaleField {
+  name: string
+  placeholder: string
+}
+
+export function FormModale(opt: {
+  title: string
+  description?: string | JSX.Element
+  fields: FormModaleField[]
+  onSubmit: (formData: Record<string, any>) => Promise<void> | void
+  onClose?: () => void
+}) {
+  const [error, setError] = useState<string | undefined>()
+  const [formData, setFormData] = useState<Record<string, any>>({})
+
+  const submit = (ev: FormEvent) => {
+    ev.preventDefault()
+
+    Promise.resolve(opt.onSubmit(formData)).catch(err => {
+      setError(err.message)
+      console.error(err)
+    })
+  }
+
+  return (
+    <Modale width="22rem" height="auto" onClose={opt.onClose} closeBtn={true}>
+      <CommonModaleCtnr as="form" onSubmit={submit}>
+        <div className="modale-title">{opt.title}</div>
+        <div className="description">{opt.description}</div>
+        <div className="fields">
+          {opt.fields.map(field => (
+            <input
+              placeholder={field.placeholder}
+              value={formData[field.name] || ''}
+              onChange={ev =>
+                setFormData({ ...formData, [field.name]: ev.target.value })
+              }
+              key={field.name}
+            ></input>
+          ))}
+        </div>
+        <div className="error">{error}</div>
+        <div className="buttons">
+          <button onClick={opt.onClose}>Annuler</button>
+          <button type="submit">Confirmer</button>
+        </div>
+      </CommonModaleCtnr>
     </Modale>
   )
 }

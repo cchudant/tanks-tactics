@@ -13,7 +13,10 @@ import { Request } from 'express'
 import { Repository } from 'typeorm'
 import { InjectRepository } from '@nestjs/typeorm'
 import { promisify } from 'util'
-import { classToClass, classToPlain } from 'class-transformer'
+import {
+  instanceToPlain as classToPlain,
+  plainToInstance as plainToClass,
+} from 'class-transformer'
 import { ApiOkResponse } from '@nestjs/swagger'
 import { UserEntity } from '../entities/user.entity'
 import { UserSession } from './user.session'
@@ -46,11 +49,16 @@ class CreateUserDto {
   username!: string
 }
 
+class CreateUserRetDto {
+  constructor(public password: string) {}
+}
+class PasswordRetDto {
+  constructor(public password: string) {}
+}
+
 @Controller('auth')
 export class AuthController {
-  constructor(
-    private readonly authService: AuthService,
-  ) {}
+  constructor(private readonly authService: AuthService) {}
 
   @Post('login')
   @UseGuards(PassportAuthGuard('local'))
@@ -71,8 +79,8 @@ export class AuthController {
 
   @Post('logout')
   @UseGuards(AuthGuard)
-  logout(@Req() req: Request) {
-    req.logOut()
+  async logout(@Req() req: Request) {
+    await promisify(req.logOut).call(req)
   }
 
   @Post('setPassword')
@@ -82,7 +90,8 @@ export class AuthController {
     @Req() req: Request,
   ) {
     if (!session) throw new UnauthorizedException('You must be logged in')
-    if (!session.isDefaultPassword) throw new ForbiddenException('Cannot change password twice')
+    if (!session.isDefaultPassword)
+      throw new ForbiddenException('Cannot change password twice')
 
     await this.authService.setPassword(session.userId, obj.password)
     session.isDefaultPassword = false
@@ -92,12 +101,16 @@ export class AuthController {
   @Post('createUser')
   @UseGuards(AdminGuard)
   async createUser(@Body() body: CreateUserDto) {
-    return await this.authService.createUser(body.username)
+    return new CreateUserRetDto(
+      await this.authService.createUser(body.username),
+    )
   }
 
   @Post('resetPassword')
   @UseGuards(AdminGuard)
-  async resetPassword(@Body() body: ResetPasswordDto): Promise<string> {
-    return await this.authService.resetPassword(body.username)
+  async resetPassword(@Body() body: ResetPasswordDto) {
+    return new PasswordRetDto(
+      await this.authService.resetPassword(body.username),
+    )
   }
 }

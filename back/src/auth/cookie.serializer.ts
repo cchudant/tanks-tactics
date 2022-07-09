@@ -1,6 +1,9 @@
 import { PassportSerializer } from '@nestjs/passport'
 import { Injectable } from '@nestjs/common'
-import { classToPlain, plainToClass } from 'class-transformer'
+import {
+  instanceToPlain as classToPlain,
+  plainToInstance as plainToClass,
+} from 'class-transformer'
 import { UserSession } from './user.session'
 
 @Injectable()

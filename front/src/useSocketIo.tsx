@@ -20,9 +20,7 @@ export const SocketIOProvider: React.FC<ISocketIOProviderProps> = ({
     return <>{children}</>
   }
 
-  console.log(socketRef, opts)
   if (!socketRef.current) {
-    console.log('SOCKET')
     socketRef.current = io(url, opts)
   }
 

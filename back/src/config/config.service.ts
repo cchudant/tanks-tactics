@@ -1,7 +1,7 @@
 import { TypeOrmModuleOptions } from '@nestjs/typeorm'
-import { MailerOptions } from '@nestjs-modules/mailer'
 import * as path from 'path'
 import * as dotenv from 'dotenv'
+import { LoggerOptions } from 'typeorm'
 
 dotenv.config()
 
@@ -25,7 +25,7 @@ export class ConfigService {
   }
 
   public getPort() {
-    return parseInt(this.getValue('PORT', false)) || 3000
+    return parseInt(this.getValue('PORT', false)) || 4000
   }
 
   public getListenHost() {
@@ -42,9 +42,9 @@ export class ConfigService {
     return mode === 'test'
   }
 
-  public getTypeOrmConfig(): TypeOrmModuleOptions {
+  public getTypeOrmConfig() {
     return {
-      type: 'postgres',
+      type: 'postgres' as const,
 
       host: this.getValue('POSTGRES_HOST'),
       port: parseInt(this.getValue('POSTGRES_PORT')),
@@ -62,10 +62,14 @@ export class ConfigService {
       migrations: this.isTesting()
         ? ['migrations/*.ts']
         : ['dist/migrations/*.js'],
+
       cli: {
         migrationsDir: this.isProduction() ? 'dist/migrations' : 'migrations',
       },
-      logging: this.isProduction() || this.isTesting() ? false : 'all',
+
+      logging: (this.isProduction() || this.isTesting()
+        ? false
+        : 'all') as LoggerOptions,
 
       synchronize: this.isTesting(),
     }

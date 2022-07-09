@@ -43,7 +43,7 @@ export class SocketIOAdapter extends AbstractWsAdapter {
           credentials: true,
         },
         cookie: {
-          //   name: 'io',
+          name: 'io',
           httpOnly: true,
           path: '/',
         },

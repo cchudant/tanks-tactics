@@ -16,10 +16,30 @@ export const RequestProvider: React.FC<{
   )
 }
 
+export class ApiError extends Error {
+  constructor(public res: Response, message: string) {
+    super(message)
+  }
+}
+
+async function handleError(res: Response) {
+  if (!res.ok) {
+    let message = res.statusText
+    try {
+      const json = (await res.json())
+      const msg = json.message
+      if (typeof msg === 'string') message = msg
+      if (Array.isArray(msg) && typeof msg[0] === 'string') message = msg[0]
+    } catch (e) {}
+
+    throw new ApiError(res, message)
+  }
+}
+
 export function useRequest<T>(
   url: string,
   options?: RequestInit
-): { data: T | null; setData: (d: T | null) => void, refetch: () => void } {
+): { data: T | null; setData: (d: T | null) => void; refetch: () => void } {
   const [data, setData] = useState<T | null>(null)
   const ctx = useContext(RequestContext)
   if (!ctx) throw new Error('FetchContext not initialized')
@@ -29,6 +49,8 @@ export function useRequest<T>(
       credentials: 'include',
       ...options,
     })
+    await handleError(res)
+
     const json =
       res.headers.get('content-length') == '0' ? {} : await res.json()
     setData(json)
@@ -40,7 +62,7 @@ export function useRequest<T>(
   return { data, setData, refetch }
 }
 
-export function usePost<T = void>(
+export function usePost<T = any>(
   url: string,
   options?: RequestInit
 ): {
@@ -67,8 +89,11 @@ export function usePost<T = void>(
         credentials: 'include',
         ...options,
       })
+      await handleError(res)
+
       const json =
         res.headers.get('content-length') == '0' ? {} : await res.json()
+
       setData(json)
       setReturned(true)
       return json

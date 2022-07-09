@@ -32,43 +32,58 @@ export function Login(opt: {
   const { call: login, result: loginRes } = usePost<{
     isDefaultPassword: boolean
   }>('/auth/login')
-  const { call: setPasswordCall } = usePost(
-    '/auth/setPassword'
-  )
+  const { call: setPasswordCall } = usePost('/auth/setPassword')
 
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
 
+  const [loginError, setLoginError] = useState<string | undefined>()
+  const [setPassError, setSetPassError] = useState<string | undefined>()
+
   const onSubmit = (ev: FormEvent) => {
     ev.preventDefault()
     login({ username, password })
+      .catch(err => {
+        setLoginError(err.message)
+        console.error(err)
+      })
   }
 
   const firstLogin =
-    (loginRes && loginRes.isDefaultPassword) || (opt.session && opt.session.isDefaultPassword)
+    (loginRes && loginRes.isDefaultPassword) ||
+    (opt.session && opt.session.isDefaultPassword)
 
   return (
     <>
       <LoggedActionsCntr onSubmit={onSubmit}>
         <div>
-          <span>Login</span>
+          <span>Identification</span>
           <input
-            placeholder="login"
+            placeholder="identifiant"
             value={username}
             onChange={ev => setUsername(ev.target.value)}
           ></input>
           <input
-            placeholder="password"
+            placeholder="mot de passe"
             type="password"
             value={password}
             onChange={ev => setPassword(ev.target.value)}
           ></input>
+          <div className="error">{loginError}</div>
           <button type="submit">Envoyer</button>
         </div>
       </LoggedActionsCntr>
       {firstLogin ? (
         <FirstLoginModale
-          onSetPassword={pw => setPasswordCall({ password: pw }).then(() => opt.onLoggedIn())}
+          onSetPassword={pw =>
+            setPasswordCall({ password: pw })
+              .catch(err => {
+                setSetPassError(err.message)
+                console.error(err)
+              })
+              .then(() => opt.onLoggedIn())
+          }
+          error={setPassError}
         ></FirstLoginModale>
       ) : null}
     </>
@@ -118,6 +133,7 @@ const FirstLoginModaleContent = styled.div`
 
 export function FirstLoginModale(opt: {
   onSetPassword: (password: string) => void
+  error?: string
 }) {
   const [password, setPassword] = useState('')
   const onSubmit = (ev: FormEvent) => {
@@ -138,6 +154,7 @@ export function FirstLoginModale(opt: {
               value={password}
               onChange={ev => setPassword(ev.target.value)}
             />
+            <div className="error">{opt.error}</div>
             <button type="submit">Envoyer</button>
           </div>
         </form>
