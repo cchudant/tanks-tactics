@@ -92,6 +92,7 @@ export class AppService {
         throw new BadRequestException('Too far away')
 
       if (src.hearts < 1) throw new BadRequestException('Not enough hearts')
+      if (trg.hearts >= 3) throw new BadRequestException('Target has too many hearts')
 
       // mutate state
       src.hearts -= 1
@@ -532,7 +533,7 @@ export class AppService {
     })
   }
 
-  @Cron('*/30 * * * *')
+  @Cron('0/30 * * * *')
   async resetJobEndgame() {
     await this.performResetJob(true)
   }
