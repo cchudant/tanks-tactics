@@ -537,7 +537,7 @@ export class AppService {
     await this.performResetJob(true)
   }
 
-  @Cron('0 18 * * *')
+  @Cron('0 16 * * *')
   async resetJob() {
     await this.performResetJob(false)
   }
