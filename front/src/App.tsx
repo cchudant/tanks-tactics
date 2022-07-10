@@ -3,6 +3,7 @@ import styled from 'styled-components'
 
 import { BoardEntity, GameBoard } from './Board'
 
+import assetInfo from './assets/info.svg'
 import assetHeart from './assets/heart.svg'
 import assetSkullCrossbones from './assets/skull-crossbones.svg'
 
@@ -21,6 +22,10 @@ import { AdminActions } from './AdminActions'
 
 const LegendCtnr = styled.div`
   margin-left: 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 15rem;
 
   & .gamestate {
     font-size: 2rem;
@@ -45,9 +50,25 @@ const LegendCtnr = styled.div`
     padding-top: 1rem;
     font-size: 1rem;
   }
+
+  & .rules {
+    font-size: 1rem;
+    color: inherit;
+    & img {
+      margin-right: 3px;
+      margin-top: 7px;
+      margin-bottom: -7px;
+    }
+  }
+
+  & .players {
+    flex: 1;
+    width: 100%;
+  }
 `
 const LegendItem = styled.div<{ col: number }>`
   padding-left: 1.5rem;
+  width: 100%;
   &:before {
     content: '';
     background-color: ${opt => colors[opt.col % colors.length]};
@@ -85,27 +106,42 @@ function Legend({
   return (
     <LegendCtnr>
       {state.paused ? (
-        <div className="gamestate paused">En pause (Jour {state.currentDay}/{state.endDay})</div>
+        <div className="gamestate paused">
+          En pause (Jour {state.currentDay}/{state.endDay})
+        </div>
       ) : state.end ? (
         <div className="gamestate ended">Jeu terminé</div>
       ) : state.isEndgame ? (
         <div className="gamestate endgame">Endgame</div>
-      ) :(
-        <div className="gamestate unpaused">Jour {state.currentDay}/{state.endDay}</div>
+      ) : (
+        <div className="gamestate unpaused">
+          Jour {state.currentDay}/{state.endDay}
+        </div>
       )}
-      {state.tanks.map(tank => (
-        <LegendItem col={tank.color} key={tank.name}>
-          <span className={tank.hearts > 0 ? 'tankname' : 'tankname dead'}>
-            {tank.name}
-          </span>
-          {adminMode ? (
-            <div className="adminMode">
-              {tank.ap}AP {tank.range}R {tank.vote ? `V:${tank.vote}` : null}
-            </div>
-          ) : null}
-        </LegendItem>
-      ))}
-      <div className="lastvote">{state.lastVoted ? `Voté au dernier tour : ${state.lastVoted}` : null}</div>
+      <div className="players">
+        {state.tanks.map(tank => (
+          <LegendItem col={tank.color} key={tank.name}>
+            <span className={tank.hearts > 0 ? 'tankname' : 'tankname dead'}>
+              {tank.name}
+            </span>
+            {adminMode ? (
+              <div className="adminMode">
+                {tank.ap}AP {tank.range}R {tank.vote ? `V:${tank.vote}` : null}
+              </div>
+            ) : null}
+          </LegendItem>
+        ))}
+        <div className="lastvote">
+          {state.lastVoted ? `Voté au dernier tour : ${state.lastVoted}` : null}
+        </div>
+      </div>
+      <a
+        className="rules"
+        href="https://hackmd.io/@CyPGy4EQT_eFoC-lAYE1_g/rJLa0VSMt"
+      >
+        <img src={assetInfo} />
+        Règles du jeu
+      </a>
     </LegendCtnr>
   )
 }

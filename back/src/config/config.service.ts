@@ -87,7 +87,7 @@ export class ConfigService {
   }
 
   public getCORSOrigin(): string | boolean {
-    return this.getValue('CORS_ORIGIN') || '*'
+    return this.getValue('CORS_ORIGIN', false) || 'http://localhost:3000'
   }
 
   public getMorganFormat(): string {
