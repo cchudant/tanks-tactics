@@ -201,15 +201,6 @@ function TankTacticsBoard({
     key: 'player-' + ent.name,
   }))
 
-  entities.push(
-    ...gameState.hearts.map(heart => ({
-      x: heart.x,
-      y: heart.y,
-      display: <img src={assetHeart} width="40px" height="40px" />,
-      key: `heart-${heart.x}-${heart.y}`,
-    }))
-  )
-
   if (currentBoardAction) {
     const myTank = gameState.tanks.find(tank => tank.name === myState?.name)!
     for (let y = 0; y < gameState.height; y++) {
@@ -250,6 +241,15 @@ function TankTacticsBoard({
       }
     }
   }
+
+  entities.push(
+    ...gameState.hearts.map(heart => ({
+      x: heart.x,
+      y: heart.y,
+      display: <img src={assetHeart} width="40px" height="40px" />,
+      key: `heart-${heart.x}-${heart.y}`,
+    }))
+  )
 
   return (
     <div>

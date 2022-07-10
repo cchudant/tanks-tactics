@@ -66,8 +66,5 @@ export class GameGateway {
 
   async handleConnection(client: Socket, ...args: any[]) {
     await this.fakeExpressHandler(client.handshake)
-    this.logger.log('WS Connect', {
-      id: client.id,
-    })
   }
 }

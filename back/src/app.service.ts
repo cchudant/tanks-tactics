@@ -102,6 +102,11 @@ export class AppService {
         trg.ap = 0
         trg.vote = undefined
       }
+      if (src.hearts === 0) {
+        // suicide
+        trg.ap += src.ap
+        src.ap = 0
+      }
 
       this.checkEndgame(state)
 
@@ -490,8 +495,8 @@ export class AppService {
 
       // compute voting result
 
-      const alive = state.tanks.filter(tank => tank.hearts > 0)
       const dead = state.tanks.filter(tank => tank.hearts <= 0)
+      const alive = state.tanks.filter(tank => tank.hearts > 0)
       const tanks: [TankEntity, number][] = alive.map(tank => [
         tank,
         dead.reduce((sum, cur) => (cur.vote === tank.name ? sum + 1 : sum), 0),

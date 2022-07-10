@@ -85,8 +85,7 @@ const Button = styled.button<{ disabled?: boolean; pressed?: boolean }>`
 
 const tooltips = {
   giveAp: `\
-Donner un AP à un joueur à portée de tir.
-Coût : 1 AP`,
+Donner un AP à un joueur à portée de tir.`,
   upgradeRange: `\
 Améliorer la portée de tir.
 Coût : 3 AP`,
@@ -94,8 +93,7 @@ Coût : 3 AP`,
 Attaquer un joueur à portée de tir.
 Coût : 1 AP`,
   giveHeart: `\
-Donner un cœur à un joueur à portée de tir.
-Coût : 1 AP`,
+Donner un cœur à un joueur à portée de tir. Si vous n'avez qu'un cœur, vos AP seront aussi transférés.`,
   move: `\
 Se déplacer à une case adjacente.
 Coût : 1 AP`,
@@ -222,7 +220,7 @@ export function LoggedActions({
 
                   return true
                 },
-                range: 1,
+                range: myState.range,
               })
             }
             pressed={boardActions.current?.actionName === 'giveAp'}
@@ -277,7 +275,7 @@ export function LoggedActions({
 
                   return true
                 },
-                range: 1,
+                range: myState.range,
               })
             }
             pressed={boardActions.current?.actionName === 'giveHeart'}
@@ -307,7 +305,7 @@ export function LoggedActions({
           </Button>
           <Button
             title={tooltips.buyHeart}
-            disabled={gameState.paused || myState.ap < 3 || myState.hearts >= 3}
+            disabled={gameState.paused || gameState.isEndgame || myState.ap < 3 || myState.hearts >= 3}
             onClick={() =>
               setConfirm({
                 question: 'Acheter un cœur',
