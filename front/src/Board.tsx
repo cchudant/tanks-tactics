@@ -11,6 +11,7 @@ export interface BoardEntity {
   y: number
   display: JSX.Element
   key: string
+  pointerEvents?: boolean
 }
 
 const BoardContainer = styled.div<{ width: number; height: number }>`
@@ -63,6 +64,7 @@ const Sprite = styled.div<{
   display: flex;
   align-items: center;
   justify-content: center;
+  pointer-events: ${opt => opt.entity.pointerEvents === false ? 'none' : null};
 `
 
 const RowNumToDisp = (v: number) => 'abcdefghijklmnopqrstuvwxyz'[v]

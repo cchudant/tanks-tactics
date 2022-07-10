@@ -282,7 +282,8 @@ function TankTacticsBoard({
     ...gameState.hearts.map(heart => ({
       x: heart.x,
       y: heart.y,
-      display: <img src={assetHeart} width="40px" height="40px" />,
+      pointerEvents: false,
+      display: <img src={assetHeart} width="40px" height="40px" style={{ 'pointerEvents': 'none' }} />,
       key: `heart-${heart.x}-${heart.y}`,
     }))
   )
