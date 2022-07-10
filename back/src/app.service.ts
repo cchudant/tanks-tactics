@@ -540,11 +540,13 @@ export class AppService {
 
   @Cron('0/30 * * * *')
   async resetJobEndgame() {
+    this.logger.log('CRON: 0/30 * * * *')
     await this.performResetJob(true)
   }
 
   @Cron('0 16 * * *')
   async resetJob() {
+    this.logger.log('CRON: 0 18 * * *')
     await this.performResetJob(false)
   }
 

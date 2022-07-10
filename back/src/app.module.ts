@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common'
 import { EventEmitterModule } from '@nestjs/event-emitter'
+import { ScheduleModule } from '@nestjs/schedule'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { AppController } from './app.controller'
 import { AppService } from './app.service'
@@ -13,6 +14,7 @@ import { GameGateway } from './game.gateway'
   imports: [
     TypeOrmModule.forRoot(configService.getTypeOrmConfig()),
     AuthModule,
+    ScheduleModule.forRoot(),
     EventEmitterModule.forRoot(),
     TypeOrmModule.forFeature([GameEntity, UserEntity]),
   ],
