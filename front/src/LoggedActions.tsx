@@ -263,7 +263,7 @@ export function LoggedActions({
           </Button>
           <Button
             title={tooltips.giveHeart}
-            disabled={gameState.paused || myState.ap < 1}
+            disabled={gameState.paused || myState.hearts < 1}
             onClick={() =>
               boardActions.toggleAction({
                 actionName: 'giveHeart',
