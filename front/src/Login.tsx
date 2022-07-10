@@ -43,6 +43,7 @@ export function Login(opt: {
   const onSubmit = (ev: FormEvent) => {
     ev.preventDefault()
     login({ username, password })
+      .then(() => opt.onLoggedIn())
       .catch(err => {
         setLoginError(err.message)
         console.error(err)
@@ -77,11 +78,11 @@ export function Login(opt: {
         <FirstLoginModale
           onSetPassword={pw =>
             setPasswordCall({ password: pw })
+              .then(() => opt.onLoggedIn())
               .catch(err => {
                 setSetPassError(err.message)
                 console.error(err)
               })
-              .then(() => opt.onLoggedIn())
           }
           error={setPassError}
         ></FirstLoginModale>
