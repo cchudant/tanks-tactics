@@ -297,7 +297,7 @@ function TankTacticsBoard({
         entities={entities}
         legend={<Legend state={gameState} adminMode={adminMode}></Legend>}
       />
-      {session?.role === 'admin' ? (
+      {session?.role === 'admin' && !session.isDefaultPassword ? (
         <AdminActions
           gameState={gameState}
           boardActions={boardActions}
